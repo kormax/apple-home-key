@@ -28,7 +28,7 @@ There are two problems solving which could help complete the reverse-engineering
 2. Decrypting NFC data:  
     Data transferred in NFC protocol is encrypted using a common derived ECDH key. As of now we know how to get the keys, but a problem remains regarding the KDF, as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve:  
     - Brute forcing possible static shared info part variants, knowing all keys and an approximate decrypted data format. If a combination of words is used this is doeable, otherwise pure luck or SOL.
-    - [A divine intervention](https://pastebin.com).
+    - A divine intervention.
 
 
 If you can help with any of the issues, I'm ready to cooperate and provide sample data. Feel free to create an issue or a PR.
@@ -85,6 +85,66 @@ Prematurely, following are known:
 - HomeKey Home private key provisioning;
 - Buddy device provisioning;
 - Invitation provisioning.
+
+
+### NFCAccessControlPoint
+
+### Initial provisioning?
+Base64 form:
+```
+AQECBi8BAQICILB5zId948J7jdYynrEQIRDIJXDSaIA42zmPSDIICVhyAwgzsYDX7dNcBQ==
+```
+
+TLV form:
+```
+06[2f]:
+  01[01]: # Comand type? Version?
+   02
+  02[20]: # Private key
+   b079cc877de3c27b8dd6329eb1102110c82570d2688038db398f483208095872
+  03[08]: # Identifier
+   33b180d7edd35c05
+```
+
+This command seems to contain some sort of an identifier, version, plus private reader key used later in NFC transaction (verified, different values don't work).
+
+### Device addition?
+Base64 form:
+```
+AQECBi8BAQICILB5zId948J7jdYynrEQIRDIJXDSaIA42zmPSDIICVhyAwgzsYDX7dNcBQ==
+```
+
+TLV form:
+```
+04[52]:
+  01[01]: # Command type?
+   02
+  02[40]: # Device public key?
+   e7b0092112fcd6f0eee447287dc90a790804ed6a4aad4f64fc883b188b4b6ff2a24f6cf0cf4bd88198f497207dc7c62ff578e44ae6777fd7621a2915094acad4
+  03[08]: # Device identifier?
+   12d6efc47354c4a4
+  04[01]: # Slot identifier?
+   01
+```
+
+This command seems to contain some sort of an identifier, version, plus a public EC key (with both points lacking a sign). I have no info on how this data is used as I haven't reached a needed step.
+
+
+### Tiny thingy?
+Base64 form:
+```
+AQEBBgA=
+```
+
+TLV form:
+```
+01[01]:
+  01
+06[00]:
+```
+
+What is this????
+
 
 **TODO Provide examples and explanation** 
 
@@ -228,7 +288,97 @@ Currently only versions `0100`  and `0200` aka 1.0 and 2.0 are known
   02000100   # Supports version 2.0, and version 1.0
 ```
 
-**TODO Add more command format explanation**
+### FAST
+
+#### Request
+
+##### Overview
+
+| CLA | INS | P1    | P2  | DATA                 | LE   |
+| --- | --- | ----- | --- | -------------------- | ---- |
+| 80  | 80  | FLAGS | 00  | Refer to data format | None |
+
+FLAG and TYPE parameters seem to correlate with overall transaction length;
+
+Flag:
+- 00 if going to use STANDARD command
+- 01 if only using FAST command
+
+##### Data format
+
+| Name                        | Tag  | Length | Example                          | Notes                                                             |
+| --------------------------- | ---- | ------ | -------------------------------- | ----------------------------------------------------------------- |
+| Selected protocol version   | `5c` | 2      | 0200                             | First byte is major version, second is minor                      |
+| Reader ephemeral public key | `87` | 65     | NO                               | Contains an uncompressed EC key                                   |
+| Transaction nonce           | `4c` | 16     | deadbeefdeadbeefdeadbeefdeadbeef | A random number used to verify that transaction response is valid |
+| Reader identifier           | `4d` | 16     | deadbeefdeadbeefdeadbeefdeadbeef | First 8 bytes is reader group, last 8 are unique to the reader    |
+
+#### Response
+
+##### Overview
+
+| DATA                 | SW1 | SW2 |
+| -------------------- | --- | --- |
+| Refer to data format | 90  | 00  |
+
+Status other than `9000` cannot be encountered 
+
+##### Data format
+
+| Name                        | Tag  | Length | Example | Notes               |
+| --------------------------- | ---- | ------ | ------- | ------------------- |
+| Device ephemeral public key | `86` | 65     | NO      | Uncompressed EC key |
+| Authentication cryptogram   | `9d` | 24     | NO      |                     |
+
+
+##### Data example
+```
+86[41]: 
+  046e197441b017a6452dfe33a3645860c09a7fb34f3e84c9d6a834c737fe4e4185b37cccc2004b9cb08f837b0920d42c59ab1ce403a95cefdfe221120175f82218
+9d[18]:
+  bf1c41268230af76bffe3e7c5d00cf4a8888888888888888
+```
+
+
+### STANDARD
+
+#### Request
+
+##### Overview
+
+| CLA | INS | P1  | P2  | DATA                 | LE   |
+| --- | --- | --- | --- | -------------------- | ---- |
+| 80  | 81  | 00  | 00  | Refer to data format | None |
+
+
+##### Data format
+| Name                                     | Tag  | Length | Example | Notes |
+| ---------------------------------------- | ---- | ------ | ------- | ----- |
+| Signature over shared info in point form | `9e` | 64     | NO      |       |
+
+#### Response
+
+##### Overview
+
+| DATA                                                         | SW1 | SW2 |
+| ------------------------------------------------------------ | --- | --- |
+| Encrypted. Exact format unknown, although there some guesses | 90  | 00  |
+
+
+### COMMAND FLOW
+
+#### Request
+
+##### Overview
+
+| CLA | INS | P1      | P2  | DATA | LE   |
+| --- | --- | ------- | --- | ---- | ---- |
+| 80  | 3c  | SUCCESS | 00  | None | None |
+
+SUCCESS is a flag that indicates transaction status:
+- `00` - Failure;
+- `01` - Success (Checkmark will appear).
+
 
 ## Communication examples
 
