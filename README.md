@@ -26,7 +26,7 @@ There are two problems solving which could help complete the reverse-engineering
 1. Analysing HomeKit traffic on a real lock:  
     Right now we know which data is being written and read from a lock as HomeKit does it even with a virtual lock, being able to look at communication with a real device (I assume it can be done via a BLE HomeKit MITM) could help us to understand data structures more in-depth;
 2. Decrypting NFC data:  
-    Data transferred in NFC protocol is encrypted using a common derived ECDH key. As of now we know how to get the keys, but a problem remains regarding the KDF, as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve:  
+    Data transferred in NFC protocol is encrypted using a common derived key. As of now we know how to get the keys, but a problem remains regarding the KDF, as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve:  
     - Brute forcing possible static shared info part variants, knowing all keys and an approximate decrypted data format. If a combination of words is used this is doeable, otherwise pure luck or SOL.
     - A divine intervention.
 
