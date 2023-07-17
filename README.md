@@ -24,16 +24,16 @@ Information already available inclues:
 
 There are two problems solving which could help complete the reverse-engineering:
 1. Analysing HomeKit traffic on a real lock:  
-    Right now we know which data is being written and read from a lock as HomeKit does it even with a virtual lock, being able to look at communication with a real device (I assume it can be done via a BLE HomeKit MITM) could help us to understand data structures more in-depth;
+    Right now we know which data is being written to a lock as HomeKit does it even with a virtual lock, being able to look at communication with a real device (I assume it can be done via a BLE HomeKit MITM) could help us to understand data structures more in-depth;
 2. Decrypting NFC data:  
-    Data transferred in NFC protocol is encrypted using a common derived key. As of now we know how to get the keys, but a problem remains regarding the KDF, as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve:  
+    Response data transferred in STANDARD command is encrypted using a common derived key. As of now we know how to get the key generation components, but a problem remains regarding the KDF, as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve:  
     - Brute forcing possible static shared info part variants, knowing all keys and an approximate decrypted data format. If a combination of words is used this is doeable, otherwise pure luck or SOL.
     - A divine intervention.
 
 
 If you can help with any of the issues, I'm ready to cooperate and provide sample data. Feel free to create an issue or a PR.
 
-**Information published here is not in final form. Many ammendments are planned to be done throughout this week to make this document fully self-sufficient**
+**Information published here is not in final form**
 
 # Overview
 
@@ -199,7 +199,7 @@ Home Key uses two application identifiers:
 1. Home Key Primary:  
     `A0000008580101`. Primary, used for most commands;
 2. Home Key Configuration:  
-    `A0000008580102`. Used for mailbox synchronization, can only be selected after a successful authentication with a primary applet.
+    `A0000008580102`. Presumably used for mailbox synchronization, can only be selected after a successful STANDARD authentication with a primary applet.
 
 In most situations a reader will only use the Primary applet, Configuration will be selected only:
 - When a secondary device (a watch) is authenticated for the first time;
@@ -215,7 +215,7 @@ There might be more instances when mailbox is used. This information might chang
    | SELECT Home Key               | 00  | A4  | 04    | 00   | Home Key AID               | 00  |                             |
    | FAST                          | 80  | 80  | FLAGS | TYPE | TLV encoded data           | 00  | Data format described below |
    | STANDARD                      | 80  | 81  | 00    | 00   | TLV encoded data           |     | Data format described below |
-   | EXCHANGE                      | 80  | 84  |       |      | Encrypted TLV encoded data |     | Data format described below |
+   | EXCHANGE                      | 80  | 84  |       |      | TLV encoded data           |     | Data format described below |
    | CONTROL FLOW                  | 80  | 3c  | STEP  | INFO |                            |     | No data, used purely for UX |
    | Select Home Key Configuration | 00  | A4  | 04    | 00   | Home Key Configuration AID | 00  |                             |
 
