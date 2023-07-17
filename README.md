@@ -210,14 +210,14 @@ There might be more instances when mailbox is used. This information might chang
 
 ## Command overview
 
-   | Command name                  | CLA | INS | P1    | P2   | DATA                       | LE  | Notes                       |
-   | ----------------------------- | --- | --- | ----- | ---- | -------------------------- | --- | --------------------------- |
-   | SELECT Home Key               | 00  | A4  | 04    | 00   | Home Key AID               | 00  |                             |
-   | FAST                          | 80  | 80  | FLAGS | TYPE | TLV encoded data           | 00  | Data format described below |
-   | STANDARD                      | 80  | 81  | 00    | 00   | TLV encoded data           |     | Data format described below |
-   | EXCHANGE                      | 80  | 84  |       |      | TLV encoded data           |     | Data format described below |
-   | CONTROL FLOW                  | 80  | 3c  | STEP  | INFO |                            |     | No data, used purely for UX |
-   | Select Home Key Configuration | 00  | A4  | 04    | 00   | Home Key Configuration AID | 00  |                             |
+   | Command name                  | CLA  | INS  | P1    | P2   | DATA                       | LE   | Notes                       |
+   | ----------------------------- | ---- | ---- | ----- | ---- | -------------------------- | ---- | --------------------------- |
+   | SELECT Home Key               | `00` | `A4` | `04`  | `00` | Home Key AID               | `00` |                             |
+   | FAST                          | `80` | `80` | FLAGS | TYPE | TLV encoded data           | `00` | Data format described below |
+   | STANDARD                      | `80` | `81` | `00`  | `00` | TLV encoded data           |      | Data format described below |
+   | EXCHANGE                      | `80` | `84` |       |      | TLV encoded data           |      | Data format described below |
+   | CONTROL FLOW                  | `80` | `3c` | STEP  | INFO | None                       |      | No data, used purely for UX |
+   | Select Home Key Configuration | `00` | `a4` | `04`  | `00` | Home Key Configuration AID | `00` |                             |
 
 Commands are executed in a following sequence:
 1. SELECT:  
@@ -260,25 +260,25 @@ This section will describe following aspects of each command separately:
 
 ##### Overview
 
-| CLA | INS | P1  | P2  | DATA             | LE  |
-| --- | --- | --- | --- | ---------------- | --- |
-| 00  | A4  | 04  | 00  | `A0000008580101` | 00  |
+| CLA  | INS  | P1   | P2   | DATA             | LE   |
+| ---- | ---- | ---- | ---- | ---------------- | ---- |
+| `00` | `A4` | `04` | `00` | `A0000008580101` | `00` |
 
 #### Response 
 
 ##### Overview
 
-| DATA                 | SW1 | SW2 |
-| -------------------- | --- | --- |
-| Refer to data format | 90  | 00  |
+| DATA                 | SW1  | SW2  |
+| -------------------- | ---- | ---- |
+| Refer to data format | `90` | `00` |
 
 Any response rather than `9000` means that applet is not available
 
 ##### Data format
 
-| Name               | Tag  | Length | Example  | Notes                                        |
-| ------------------ | ---- | ------ | -------- | -------------------------------------------- |
-| Supported versions | `5c` | 2*n    | 02000100 | First byte is major version, second is minor |
+| Name               | Tag  | Length | Example    | Notes                                        |
+| ------------------ | ---- | ------ | ---------- | -------------------------------------------- |
+| Supported versions | `5c` | 2*n    | `02000100` | First byte is major version, second is minor |
 
 Currently only versions `0100`  and `0200` aka 1.0 and 2.0 are known
 
@@ -294,9 +294,9 @@ Currently only versions `0100`  and `0200` aka 1.0 and 2.0 are known
 
 ##### Overview
 
-| CLA | INS | P1    | P2  | DATA                 | LE   |
-| --- | --- | ----- | --- | -------------------- | ---- |
-| 80  | 80  | FLAGS | 00  | Refer to data format | None |
+| CLA  | INS  | P1    | P2   | DATA                 | LE   |
+| ---- | ---- | ----- | ---- | -------------------- | ---- |
+| `80` | `80` | FLAGS | `00` | Refer to data format | None |
 
 FLAG and TYPE parameters seem to correlate with overall transaction length;
 
@@ -306,37 +306,37 @@ Flag:
 
 ##### Data format
 
-| Name                        | Tag  | Length | Example                          | Notes                                                             |
-| --------------------------- | ---- | ------ | -------------------------------- | ----------------------------------------------------------------- |
-| Selected protocol version   | `5c` | 2      | 0200                             | First byte is major version, second is minor                      |
-| Reader ephemeral public key | `87` | 65     | NO                               | Contains an uncompressed EC key                                   |
-| Transaction nonce           | `4c` | 16     | deadbeefdeadbeefdeadbeefdeadbeef | A random number used to verify that transaction response is valid |
-| Reader identifier           | `4d` | 16     | deadbeefdeadbeefdeadbeefdeadbeef | First 8 bytes is reader group, last 8 are unique to the reader    |
+| Name                        | Tag  | Length | Example                            | Notes                                                             |
+| --------------------------- | ---- | ------ | ---------------------------------- | ----------------------------------------------------------------- |
+| Selected protocol version   | `5c` | 2      | `0200`                             | First byte is major version, second is minor                      |
+| Reader ephemeral public key | `87` | 65     | NO                                 | Contains an uncompressed EC key                                   |
+| Transaction nonce           | `4c` | 16     | `deadbeefdeadbeefdeadbeefdeadbeef` | A random number used to verify that transaction response is valid |
+| Reader identifier           | `4d` | 16     | `deadbeefdeadbeefdeadbeefdeadbeef` | First 8 bytes is reader group, last 8 are unique to the reader    |
 
 #### Response
 
 ##### Overview
 
-| DATA                 | SW1 | SW2 |
-| -------------------- | --- | --- |
-| Refer to data format | 90  | 00  |
+| DATA                 | SW1  | SW2  |
+| -------------------- | ---- | ---- |
+| Refer to data format | `90` | `00` |
 
 Status other than `9000` cannot be encountered 
 
 ##### Data format
 
-| Name                        | Tag  | Length | Example | Notes               |
-| --------------------------- | ---- | ------ | ------- | ------------------- |
-| Device ephemeral public key | `86` | 65     | NO      | Uncompressed EC key |
-| Authentication cryptogram   | `9d` | 24     | NO      |                     |
+| Name                        | Tag  | Length | Example                                                                                                                              | Notes               |
+| --------------------------- | ---- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| Device ephemeral public key | `86` | 65     | `046e197441b017a6452dfe33a3645860c09a7fb34f3e84c9d6a834c737fe4e4185b37cccc2004b9cb08f837b0920d42c59ab1ce403a95cefdfe221120175f82218` | Uncompressed EC key |
+| Authentication cryptogram   | `9d` | 16     | `7656a6256aee6f9bdc55ed45d96026a3`                                                                                                   |                     |
 
 
 ##### Data example
 ```
 86[41]: 
   046e197441b017a6452dfe33a3645860c09a7fb34f3e84c9d6a834c737fe4e4185b37cccc2004b9cb08f837b0920d42c59ab1ce403a95cefdfe221120175f82218
-9d[18]:
-  bf1c41268230af76bffe3e7c5d00cf4a8888888888888888
+9d[10]:
+  7656a6256aee6f9bdc55ed45d96026a3
 ```
 
 
@@ -346,15 +346,15 @@ Status other than `9000` cannot be encountered
 
 ##### Overview
 
-| CLA | INS | P1  | P2  | DATA                 | LE   |
-| --- | --- | --- | --- | -------------------- | ---- |
-| 80  | 81  | 00  | 00  | Refer to data format | None |
+| CLA  | INS  | P1   | P2   | DATA                 | LE   |
+| ---- | ---- | ---- | ---- | -------------------- | ---- |
+| `80` | `81` | `00` | `00` | Refer to data format | None |
 
 
 ##### Data format
 | Name                                     | Tag  | Length | Example | Notes |
 | ---------------------------------------- | ---- | ------ | ------- | ----- |
-| Signature over shared info in point form | `9e` | 64     | NO      |       |
+| Signature over shared info in point form | `9e` | 64     |         |       |
 
 ##### Data example
 ```
@@ -366,9 +366,9 @@ Status other than `9000` cannot be encountered
 
 ##### Overview
 
-| DATA                                                         | SW1 | SW2 |
-| ------------------------------------------------------------ | --- | --- |
-| Encrypted. Exact format unknown, although there some guesses | 90  | 00  |
+| DATA                                                         | SW1  | SW2  |
+| ------------------------------------------------------------ | ---- | ---- |
+| Encrypted. Exact format unknown, although there some guesses | `90` | `00` |
 
 ### COMMAND FLOW
 
@@ -376,9 +376,9 @@ Status other than `9000` cannot be encountered
 
 ##### Overview
 
-| CLA | INS | P1      | P2  | DATA | LE   |
-| --- | --- | ------- | --- | ---- | ---- |
-| 80  | 3c  | SUCCESS | 00  | None | None |
+| CLA  | INS  | P1      | P2   | DATA | LE   |
+| ---- | ---- | ------- | ---- | ---- | ---- |
+| `80` | `3c` | SUCCESS | `00` | None | None |
 
 SUCCESS is a flag that indicates transaction status:
 - `00` - Failure;
