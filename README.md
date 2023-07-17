@@ -356,6 +356,12 @@ Status other than `9000` cannot be encountered
 | ---------------------------------------- | ---- | ------ | ------- | ----- |
 | Signature over shared info in point form | `9e` | 64     | NO      |       |
 
+##### Data example
+```
+9e[40]:
+  57a071cfeeff242878c68ef02fc430fe59cbf56741a1cadfcb0b23f962723d7321b67ab65015d50688edd17e7e658f4f6547b79bcbf9024a3bf701c216256050
+```
+
 #### Response
 
 ##### Overview
@@ -363,7 +369,6 @@ Status other than `9000` cannot be encountered
 | DATA                                                         | SW1 | SW2 |
 | ------------------------------------------------------------ | --- | --- |
 | Encrypted. Exact format unknown, although there some guesses | 90  | 00  |
-
 
 ### COMMAND FLOW
 
@@ -384,7 +389,14 @@ SUCCESS is a flag that indicates transaction status:
 
 This section will provide full real transaction examples with verbose data and explanations
 
-**TODO Add communication examples**
+### A FAST authentication
+
+```
+> 00a404000ca0000008580101010000000100
+< 5c0402000100 9000
+> 808001016b5c02020087410434bcde440490018d2402182b80462ad6257d520364105d9c665d209a51bc18df234aa2c22b012fecff3c96d78288a67875c243b5adb000862a119bb6a322158e4c10d95ff1adf95e35cd596f87a2aa3c4c6f4d10f09d2285b658b8645d49e5ba7f0d3de300
+< 864104F9545B77F5BA345D0F0F20E7D77FF09DF75C06D6024BAB48E5A4C8C1DCBCCBB70FF40C2DA629679FCCE75A5A758C2A45D451320FF4D3E07E5AC8E71E8DE7E7339D1088C7A3EDA17EBEDA9CF87463305532C0 9000
+```
 
 # Setting up test environment
 
