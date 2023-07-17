@@ -215,7 +215,7 @@ There might be more instances when mailbox is used. This information might chang
    | SELECT Home Key               | `00` | `A4` | `04`  | `00` | Home Key AID               | `00` |                             |
    | FAST                          | `80` | `80` | FLAGS | TYPE | TLV encoded data           | `00` | Data format described below |
    | STANDARD                      | `80` | `81` | `00`  | `00` | TLV encoded data           |      | Data format described below |
-   | EXCHANGE                      | `80` | `84` |       |      | TLV encoded data           |      | Data format described below |
+   | EXCHANGE                      | `84` | `c9` |       |      | Encrypted TLV encoded data |      | Data format described below |
    | CONTROL FLOW                  | `80` | `3c` | STEP  | INFO | None                       |      | No data, used purely for UX |
    | Select Home Key Configuration | `00` | `a4` | `04`  | `00` | Home Key Configuration AID | `00` |                             |
 
