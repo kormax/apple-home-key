@@ -23,12 +23,13 @@ Information already available inclues:
     - What is the expected command response format.
 
 There are two problems solving which could help complete the reverse-engineering:
-1. Analysing HomeKit traffic on a real lock:  
-    Right now we know which data is being written to a lock as HomeKit does it even with a virtual lock, being able to look at communication with a real device (I assume it can be done via a BLE HomeKit MITM) could help us to understand data structures more in-depth;
+1. ~~Analysing HomeKit traffic on a real lock~~:  
+    This part has been analysed and described by [@kupa22](https://github.com/kupa22/apple-homekey);
 2. Decrypting NFC data:  
     Response data transferred in STANDARD command is encrypted using a common derived key. As of now we know how to get the key generation components, but a problem remains regarding the KDF, as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve:  
-    - Brute forcing possible static shared info part variants, knowing all keys and an approximate decrypted data format. If a combination of words is used this is doeable, otherwise pure luck or SOL.
-    - A divine intervention.
+    - Brute forcing possible static shared info part variants, knowing all keys and an approximate decrypted data format. If a combination of words is used this is doeable, otherwise pure luck or SOL.  
+    - Analysing the applet (If obtained).  
+      There is some possibility that the Key applet is situated somewhere in the system. One clue that points to it is that a key can be created even when offline. So the applet payload is either present in the OS and installed when you add a first key (highly unlikely as auth needed to install applets into the SE), or it is preinstalled during the SE firmware update when you update IOS. If the latter is true, `.sefw` files can be analysed, but there is a big possibility that the interesting contents are actually encrypted.
 
 
 If you can help with any of the issues, I'm ready to cooperate and provide sample data. Feel free to create an issue or a PR.
@@ -40,6 +41,7 @@ If you can help with any of the issues, I'm ready to cooperate and provide sampl
 - Nonce - Single-use number;
 - EC - Elliptic Curve;
 - If a key is mentioned without algorithm info, assume its `secp256r1`;
+- If a question mark is used near a word before the ending of a sentence, it means that it is an assumption.
 
 # Overview
 
@@ -61,6 +63,8 @@ Just like tha parent protocol, Home Key has following advantages:
 
 Information in this section is based on info found by [@KhaosT](https://github.com/KhaosT) for [HAP-NodeJS](https://github.com/homebridge/HAP-NodeJS);
 HomeKit data is encoded in a [TLV8](https://pypi.org/project/tlv8/) format;
+
+More comprehensive overview of this topic has been done by [@kupa22](https://github.com/kupa22/apple-homekey). This section will be left as-is for now, updated in the future.
 
 ## Device configuration
 
@@ -208,25 +212,27 @@ Home Key uses two application identifiers:
     `A0000008580102`. Presumably used for mailbox synchronization, can only be selected after a successful STANDARD authentication with a primary applet.
 
 In most situations a reader will only use the Primary applet, Configuration will be selected only:
-- When a secondary device (a watch) is authenticated for the first time;
 - If a new person is invited and a key data hasn't been provisioned into a lock prior to that;
-- After key revocation;
+- After key revocation?;
 
 There might be more instances when mailbox is used. This information might change as we are able to research the protocol more in-depth.
 
 ## Command overview
 
-   | Command name                  | CLA  | INS  | P1    | P2   | DATA                       | LE   | Notes                       |
-   | ----------------------------- | ---- | ---- | ----- | ---- | -------------------------- | ---- | --------------------------- |
-   | SELECT Home Key               | `00` | `A4` | `04`  | `00` | Home Key AID               | `00` |                             |
-   | FAST                          | `80` | `80` | FLAGS | TYPE | TLV encoded data           | `00` | Data format described below |
-   | STANDARD                      | `80` | `81` | `00`  | `00` | TLV encoded data           |      | Data format described below |
-   | EXCHANGE                      | `84` | `c9` | `00`  | `00` | Encrypted TLV encoded data |      | Data format described below |
-   | CONTROL FLOW                  | `80` | `3c` | STEP  | INFO | None                       |      | No data, used purely for UX |
-   | Select Home Key Configuration | `00` | `a4` | `04`  | `00` | Home Key Configuration AID | `00` |                             |
+   | Command name                | CLA  | INS  | P1    | P2   | DATA                             | LE   | Notes                                                                                            |
+   | --------------------------- | ---- | ---- | ----- | ---- | -------------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
+   | SELECT USER APPLET          | `00` | `A4` | `04`  | `00` | Home Key AID                     | `00` |                                                                                                  |
+   | FAST                        | `80` | `80` | FLAGS | TYPE | TLV encoded data                 | `00` | Data format described below                                                                      |
+   | STANDARD                    | `80` | `81` | `00`  | `00` | TLV encoded data                 |      | Data format described below                                                                      |
+   | EXCHANGE                    | `84` | `c9` | `00`  | `00` | Encrypted TLV encoded data       |      | Data format described below                                                                      |
+   | CONTROL FLOW                | `80` | `3c` | STEP  | INFO | None                             |      | No data, used purely for UX                                                                      |
+   | SELECT CONFIGURATION APPLET | `00` | `a4` | `04`  | `00` | Home Key Configuration AID       | `00` |                                                                                                  |
+   | ENVELOPE                    | `00` | `c3` | `00`  | FRMT | BER-TLV with nested NDEF or CBOR | `00` | Device returns parts of BER-TLV with nested NDEF or CBOR                                         |
+   | GET RESPONSE                | `00` | `c0` | `00`  | `00` | None                             | `XX` | LE is length of data expected in response. Response data format as the one requested in ENVELOPE |
+
 
 Commands are executed in a following sequence:
-1. SELECT:  
+1. SELECT USER APPLET:  
     Reader transmits Home Key AID; Device responds with a version list TLV;
     Reader has to verify that there is a protocol version match between a list provided by a device and itself;
 2. FAST:  
@@ -241,12 +247,20 @@ Commands are executed in a following sequence:
     Common keys are established during this step to be used in FAST command in next communications. **This is the step that's not yet solved**
 4. EXCHANGE:  
     Using the established encrypted channel, reader can request or write information from/in mailbox.  
-    In some yet unresearched cases for a separate configuration applet is selected to exchange more data, presumably for attestation exchange.
+    In cases when a reader does not recognize the device, the communication continues further with configuration.
 *  CONTROL FLOW:
     Used in between other commands to communicate transaction state to the device. This command is reponsible for UX, such as:
     - Success checkmark;
     - Failure exclamation mark;
     - Error messages;
+5. SELECT CONFIGURATION APPLET:  
+    Reader transmits Home Key Configuration AID. Device responds positively without any data.
+6. ENVELOPE:  
+    Reader transmits BER-TLV-encoded data with nested CBOR or NDEF messages (credit [@kupa22](https://github.com/kupa22/apple-homekey) for tip);  
+    Device responds with similarly encoded messages;
+* GET RESPONSE:
+    If a response to `ENVELOPE` or `GET RESPONSE` had an sw `6100`, reader uses this command to request additional response parts.
+  
 
 
 **TODO Add command overview for configuration applet**
@@ -260,7 +274,7 @@ This section will describe following aspects of each command separately:
 - response data.
 - nested data structures;
 
-### Select
+### SELECT USER APPLET
 
 #### Request
 
@@ -307,8 +321,8 @@ Currently only versions `0100`  and `0200` aka 1.0 and 2.0 are known
 FLAG and TYPE parameters seem to correlate with overall transaction length;
 
 Flag:
-- 00 if going to use STANDARD command
-- 01 if only using FAST command
+- `00` if intending to use STANDARD command (no cryptogram will be generated in response);
+- `01` if trying to using FAST command only (still can continue with STANDARD if fail).
 
 ##### Data format
 
@@ -331,10 +345,10 @@ Status other than `9000` cannot be encountered
 
 ##### Data format
 
-| Name                        | Tag  | Length | Example                            | Notes                               |
-| --------------------------- | ---- | ------ | ---------------------------------- | ----------------------------------- |
-| Device ephemeral public key | `86` | 65     | `04`...                          | Uncompressed `secp256r1` public key |
-| Authentication cryptogram   | `9d` | 16     | `7656a6256aee6f9bdc55ed45d96026a3` |                                     |
+| Name                        | Tag  | Length | Example                            | Notes                                  |
+| --------------------------- | ---- | ------ | ---------------------------------- | -------------------------------------- |
+| Device ephemeral public key | `86` | 65     | `04`...                            | Uncompressed `secp256r1` public key    |
+| Authentication cryptogram   | `9d` | 16     | `7656a6256aee6f9bdc55ed45d96026a3` | Optional, returned only if p1 is  `01` |
 
 
 ##### Data example
@@ -382,29 +396,110 @@ Status other than `9000` cannot be encountered
 
 ##### Overview
 
-| CLA  | INS  | P1      | P2   | DATA | LE   |
-| ---- | ---- | ------- | ---- | ---- | ---- |
-| `80` | `3c` | SUCCESS | `00` | None | None |
+| CLA  | INS  | P1     | P2   | DATA | LE   |
+| ---- | ---- | ------ | ---- | ---- | ---- |
+| `80` | `3c` | STATUS | STEP | None | None |
 
 SUCCESS is a flag that indicates transaction status:
 - `00` - Failure;
 - `01` - Success (Checkmark will appear).
+- `40` - Need? to exchange? attestation? data?
+
+STEP is a second flag:
+- `00` - Failure or success in normal circumstances;
+- `a0` - Need? to exchange? attestation? data?
+
+#### Response
+
+##### Overview
+
+| DATA | SW1  | SW2  |
+| ---- | ---- | ---- |
+| None | `90` | `00` |
+
+
+### SELECT CONFIGURATION APPLET
+
+#### Request
+
+##### Overview
+
+| CLA  | INS  | P1   | P2   | DATA             | LE   |
+| ---- | ---- | ---- | ---- | ---------------- | ---- |
+| `00` | `A4` | `04` | `00` | `a0000008580102` | `00` |
+
+#### Response 
+
+##### Overview
+
+| DATA | SW1  | SW2  |
+| ---- | ---- | ---- |
+| None | `90` | `00` |
+
+Any response rather than `9000` means that applet is not available.
+This applet is only selectable after EXCHAGNE + CONTROL FLOW (need attestation) commands have been successfuly used.  
+otherwise the device will present an error and stop NFC communication.
+
+
+### ENVELOPE
+
+#### Request
+
+##### Overview
+
+| CLA  | INS  | P1   | P2   | DATA                                          | LE   |
+| ---- | ---- | ---- | ---- | --------------------------------------------- | ---- |
+| `00` | `c3` | `00` | FRMT | BER-TLV-encoded data with nested NDEF or CBOR | `00` |
+
+FRMT real meaning is unknown, but according to observations it means the following:
+- `01` NDEF nfc handover message in command and response (first command-response pair only);
+- `00` CBOR message in command in response (other command-response pairs). 
+
+#### Response 
+
+##### Overview
+
+| DATA                                          | SW1  | SW2  |
+| --------------------------------------------- | ---- | ---- |
+| BER-TLV-encoded data with nested NDEF or CBOR | `XX` | `XX` |
+
+Status words:
+   | SW1  | SW2  | Notes                                                                                  |
+   | ---- | ---- | -------------------------------------------------------------------------------------- |
+   | `90` | `00` | Data returned in full                                                                  |
+   | `61` | `XX` | More data can be requested (00 also valid value meaning that more than 255 bytes left) |
+
+### GET RESPONSE
+
+#### Request
+
+##### Overview
+
+| CLA  | INS  | P1   | P2   | DATA | LE   |
+| ---- | ---- | ---- | ---- | ---- | ---- |
+| `00` | `c0` | `00` | `00` | None | `XX` |
+
+LE should be equal to the value returned in the previous response to `ENVELOPE` or `GET RESPONSE`;
+
+#### Response 
+
+##### Overview
+
+| DATA                  | SW1  | SW2  |
+| --------------------- | ---- | ---- |
+| TLV-encoded data/part | `XX` | `XX` |
+
+Status words:
+   | SW1  | SW2  | Notes                                                                                         |
+   | ---- | ---- | --------------------------------------------------------------------------------------------- |
+   | `90` | `00` | Data returned in full                                                                         |
+   | `61` | `XX` | More data can be requested (00 also valid value meaning that more than 255 bytes left)                                              |
 
 
 ## Communication examples
 
-This section will provide full real transaction examples with verbose data and explanations
+Communication examples can be viewed in [resources directory](./resources/README.md).
 
-### A FAST authentication
-
-```
-> 00a404000ca0000008580101010000000100
-< 5c0402000100 9000
-> 808001016b5c02020087410434bcde440490018d2402182b80462ad6257d520364105d9c665d209a51bc18df234aa2c22b012fecff3c96d78288a67875c243b5adb000862a119bb6a322158e4c10d95ff1adf95e35cd596f87a2aa3c4c6f4d10f09d2285b658b8645d49e5ba7f0d3de300
-< 864104F9545B77F5BA345D0F0F20E7D77FF09DF75C06D6024BAB48E5A4C8C1DCBCCBB70FF40C2DA629679FCCE75A5A758C2A45D451320FF4D3E07E5AC8E71E8DE7E7339D1088C7A3EDA17EBEDA9CF87463305532C0 9000
-> 803c0100
-< 9000
-```
 
 # Setting up test environment
 
@@ -417,8 +512,6 @@ You can start playing with Home Keys even without having a real lock. To do that
 6. After the initialization is complete, your Home Key should appear inside of the Wallet app.
 * When adding multiple locks, don't forget to change MAC, ID, Pairing info of the new instances, as similar info might confuse HomeKit.
 
-**TODO Expand this tutorial**
-
 
 # Notes
 
@@ -428,12 +521,20 @@ You can start playing with Home Keys even without having a real lock. To do that
 # References
 
 * Resources that helped with research:
+  - Parallel Home Key protocol research project:
+    - [Apple HomeKey - @kupa22](https://github.com/kupa22/apple-homekey);
   - Original inspiration:
     - [KhaosT - Home Key demo](https://twitter.com/followhomekit/status/1478489402028531712) [(Archive)](https://web.archive.org);
   - General:
     - [TLV8 format](https://pypi.org/project/tlv8/);
     - [List of digital keys in mobile wallets](https://en.wikipedia.org/wiki/List_of_digital_keys_in_mobile_wallets);
     - [IPSW.me](https://ipsw.me/product/iPhone) - used to get IOS IPSW to look for clues in a file system;
+    - [TLV Utilities](https://emvlab.org/tlvutils/);
+    - [ASN1 decoder](https://lapo.it/asn1js/);
+    - [NDEF parser](https://ndefparser.online);
+    - [CBOR playground](https://cbor.nemo157.com).
+  - Source code:  
+    - [Google: Identity credential](https://github.com/google/identity-credential).
   - Apple resources:
     - [Apple Developer Documentation](https://developer.apple.com/documentation/);
     - [WWDC Introducting "Home Keys" (I'm not kidding)](https://developer.apple.com/videos/play/wwdc2020/10006/);
