@@ -261,10 +261,6 @@ Commands are executed in a following sequence:
 * GET RESPONSE:
     If a response to `ENVELOPE` or `GET RESPONSE` had an sw `6100`, reader uses this command to request additional response parts.
   
-
-
-**TODO Add command overview for configuration applet**
-
 ## Commands
 
 This section will describe following aspects of each command separately:
