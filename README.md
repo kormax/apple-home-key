@@ -263,13 +263,6 @@ Commands are executed in a following sequence:
   
 ## Commands
 
-This section will describe following aspects of each command separately:
-- command data;
-- p1, p2;
-- status words;
-- response data.
-- nested data structures;
-
 ### SELECT USER APPLET
 
 #### Request
