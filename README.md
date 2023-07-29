@@ -3,7 +3,7 @@
 <p float="left">
  <img src="./assets/HOME.KEY.DEMO.webp" alt="![Reading a Home Key with a PN532]" width=250px>
 </p>
-<sub>No, it's not Photoshop, although there's a trick involved</sub>
+<sub>Yes, it is what you are thinking it is.</sub>
 <br>
 
 # Notes
@@ -26,10 +26,18 @@ There are two problems solving which could help complete the reverse-engineering
 1. ~~Analysing HomeKit traffic on a real lock~~:  
     This part has been analysed and described by [@kupa22](https://github.com/kupa22/apple-homekey);
 2. Decrypting NFC data:  
-    Response data transferred in STANDARD command is encrypted using a common derived key. As of now we know how to get the key generation components, but a problem remains regarding the KDF, as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve:  
-    - Brute forcing possible static shared info part variants, knowing all keys and an approximate decrypted data format. If a combination of words is used this is doeable, otherwise pure luck or SOL.  
-    - Analysing the applet (If obtained).  
-      There is some possibility that the Key applet is situated somewhere in the system. One clue that points to it is that a key can be created even when offline. So the applet payload is either present in the OS and installed when you add a first key (highly unlikely as auth needed to install applets into the SE), or it is preinstalled during the SE firmware update when you update IOS. If the latter is true, `.sefw` files can be analysed, but there is a big possibility that the interesting contents are actually encrypted.
+    Response data transferred in STANDARD command is encrypted using a common derived key.  
+    The key generation components are known as they're re-used.  
+    What's unknown is the KDF data order and its static components, ~~as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve~~. This case is solved partially now (for V1). For extra clues, look into research done by [@kupa22](https://github.com/kupa22/apple-homekey/#applet-versions);
+
+3. Further analysis:
+  To obtain information that's still missing:
+  - (Regarding the V2 KDF):  
+    Brute forcing possible static shared  info part variants, knowing all keys and an approximate decrypted data format. If a combination of words is used this is doeable, otherwise pure luck or SOL. 
+  - Analysing the applet (If obtained): 
+    There is some possibility that the Key applet is situated somewhere in the system. One clue that points to it is that a key can be created even when offline. So the applet payload is either present in the OS and installed when you add a first key (highly unlikely as auth needed to install applets into the SE), or it is preinstalled during the SE firmware update when you update IOS. If the latter is true, `.sefw` files can be analysed, but there is a big possibility that the interesting contents are actually encrypted.
+  - Analyse device firmware:
+    IOS and/or a particular lock's   firmware can be analysed to get extra clues about the protocol.
 
 
 If you can help with any of the issues, I'm ready to cooperate and provide sample data. Feel free to create an issue or a PR.
@@ -261,6 +269,7 @@ Commands are executed in a following sequence:
 * GET RESPONSE:
     If a response to `ENVELOPE` or `GET RESPONSE` had an sw `6100`, reader uses this command to request additional response parts.
   
+Alternative overview of the NFC transaction flow can be seen [here](https://github.com/kupa22/apple-homekey/#homekey-transaction-overview).
 ## Commands
 
 ### SELECT USER APPLET
