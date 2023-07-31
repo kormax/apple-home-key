@@ -1,57 +1,19 @@
 # Apple Home Key
 
+<sub> Last update: July 31 2023</sub>
+
 <p float="left">
- <img src="./assets/HOME.KEY.DEMO.webp" alt="![Reading a Home Key with a PN532]" width=250px>
+ <img src="./assets/HOMEKEY.PHONE.DEMO.webp" alt="![Reading a Home Key from an iPhone with a PN532]" width=250px>
+ <img src="./assets/HOMEKEY.WATCH.DEMO.webp" alt="![Reading a Home Key from a Watch with a PN532]" width=250px>
+ <img src="./assets/HOMEKEY.FAST.DEMO.webp" alt="![Home Key reading logs]" width=250px>
 </p>
-<sub>Yes, it is what you are thinking it is.</sub>
+
+Yes, it is what you think it is. Follow [@kupa22](https://github.com/kupa22/apple-homekey) to be one of the first ones to find out how.
 <br>
 
-# Notes
-
-⚠️Reverse-engineering of a Home Key protocol has not yet been completed and thus this repository does not provide complete specification as to how to replicate the protocol. The main goal of this document is to provide a starting point for people that plan on researching this topic to save their time and to help with collaboration.  
-Information already available inclues:  
-- What standard Home Key is based on;
-- HomeKit:
-    - How the lock is configured via HomeKit;
-    - Primitives, operations;
-    - Common data structures;
-- NFC:
-    - ECP;
-    - Applets are used;
-    - Which commands are used;
-    - What is the content of command payloads;
-    - What is the expected command response format.
-
-There are two problems solving which could help complete the reverse-engineering:
-1. ~~Analysing HomeKit traffic on a real lock~~:  
-    This part has been analysed and described by [@kupa22](https://github.com/kupa22/apple-homekey);
-2. Decrypting NFC data:  
-    Response data transferred in STANDARD command is encrypted using a common derived key.  
-    The key generation components are known as they're re-used.  
-    What's unknown is the KDF data order and its static components, ~~as Apple have switched up the static values in order to make reverse-engineering more difficult. This is the main issue regarding the protocol. Possible solutions could involve~~. This case is solved partially now (for V1). For extra clues, look into research done by [@kupa22](https://github.com/kupa22/apple-homekey/#applet-versions);
-
-3. Further analysis:
-  To obtain information that's still missing:
-  - (Regarding the V2 KDF):  
-    Brute forcing possible static shared  info part variants, knowing all keys and an approximate decrypted data format. If a combination of words is used this is doeable, otherwise pure luck or SOL. 
-  - Analysing the applet (If obtained): 
-    There is some possibility that the Key applet is situated somewhere in the system. One clue that points to it is that a key can be created even when offline. So the applet payload is either present in the OS and installed when you add a first key (highly unlikely as auth needed to install applets into the SE), or it is preinstalled during the SE firmware update when you update IOS. If the latter is true, `.sefw` files can be analysed, but there is a big possibility that the interesting contents are actually encrypted.
-  - Analyse device firmware:
-    IOS and/or a particular lock's   firmware can be analysed to get extra clues about the protocol.
-
-
-If you can help with any of the issues, I'm ready to cooperate and provide sample data. Feel free to create an issue or a PR.
-
-**Information published here is not in final form**
-
-# Terminology
-
-- Nonce - Single-use number;
-- EC - Elliptic Curve;
-- If a key is mentioned without algorithm info, assume its `secp256r1`;
-- If a question mark is used near a word before the ending of a sentence, it means that it is an assumption.
 
 # Overview
+
 
 Apple Home Key is an NFC protocol used by select HomeKit certified locks to authenticate a user using a virtual key provisioned into their Apple device.  
 
@@ -65,6 +27,14 @@ Just like tha parent protocol, Home Key has following advantages:
     - Attestations.
 - It allows to freely share keys (although this functionality is disabled due to some reason);
 - In theory, future locks could implement UWB-based access as it's supported by specification.
+
+
+# Terminology
+
+- Nonce - Single-use number;
+- EC - Elliptic Curve;
+- If a key is mentioned without algorithm info, assume its `secp256r1`;
+- If a question mark is used near a word before the ending of a sentence, it means that it is an assumption.
 
 
 # HomeKit
@@ -217,7 +187,7 @@ Home Key uses two application identifiers:
 1. Home Key Primary:  
     `A0000008580101`. Primary, used for most commands;
 2. Home Key Configuration:  
-    `A0000008580102`. Presumably used for mailbox synchronization, can only be selected after a successful STANDARD authentication with a primary applet.
+    `A0000008580102`. Presumably used for attestation exchange, can only be selected after a successful STANDARD authentication with a primary applet.
 
 In most situations a reader will only use the Primary applet, Configuration will be selected only:
 - If a new person is invited and a key data hasn't been provisioned into a lock prior to that;
