@@ -8,7 +8,7 @@
  <img src="./assets/HOME.KEY.FAST.DEMO.webp" alt="![Home Key reading logs]" width=250px>
 </p>
 
-Yes, it is what you think it is. Follow [@kupa22](https://github.com/kupa22/apple-homekey) to be one of the first ones to find out how in coming weeks.
+Yes, it is what you think it is. Follow [@kupa22](https://github.com/kupa22/apple-homekey) to be one of the first ones to find out how in the coming weeks.
 <br>
 
 
