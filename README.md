@@ -3,9 +3,9 @@
 <sub> Last update: July 31 2023</sub>
 
 <p float="left">
- <img src="./assets/HOMEKEY.PHONE.DEMO.webp" alt="![Reading a Home Key from an iPhone with a PN532]" width=250px>
- <img src="./assets/HOMEKEY.WATCH.DEMO.webp" alt="![Reading a Home Key from a Watch with a PN532]" width=250px>
- <img src="./assets/HOMEKEY.FAST.DEMO.webp" alt="![Home Key reading logs]" width=250px>
+ <img src="./assets/HOME.KEY.PHONE.DEMO.webp" alt="![Reading a Home Key from an iPhone with a PN532]" width=250px>
+ <img src="./assets/HOME.KEY.WATCH.DEMO.webp" alt="![Reading a Home Key from a Watch with a PN532]" width=250px>
+ <img src="./assets/HOME.KEY.FAST.DEMO.webp" alt="![Home Key reading logs]" width=250px>
 </p>
 
 Yes, it is what you think it is. Follow [@kupa22](https://github.com/kupa22/apple-homekey) to be one of the first ones to find out how.
