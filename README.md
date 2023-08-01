@@ -21,11 +21,8 @@ This protocol is largely based on a [Car Key](https://developer.apple.com/videos
 
 Just like tha parent protocol, Home Key has following advantages:
 - This protocol provides reader authentication, data encryption, forward secrecy;
-- It provides a "Mailbox" mechanism that allows to sync lock configuration data even in situations when a lock is not connected to the internet:
-    - Key revocations;
-    - Invitations;
-    - Attestations.
-- It allows to freely share keys (although this functionality is disabled due to some reason);
+- It provides a "Mailbox" mechanism that allows to sync lock configuration data even in situations when a lock is not connected to the internet;
+- It allows to share keys (although this functionality is disabled due to some reason);
 - In theory, future locks could implement UWB-based access as it's supported by specification.
 
 
@@ -197,16 +194,16 @@ There might be more instances when mailbox is used. This information might chang
 
 ## Command overview
 
-   | Command name                | CLA  | INS  | P1    | P2   | DATA                             | LE   | Notes                                                                                            |
-   | --------------------------- | ---- | ---- | ----- | ---- | -------------------------------- | ---- | ------------------------------------------------------------------------------------------------ |
-   | SELECT USER APPLET          | `00` | `A4` | `04`  | `00` | Home Key AID                     | `00` |                                                                                                  |
-   | FAST                        | `80` | `80` | FLAGS | TYPE | TLV encoded data                 | `00` | Data format described below                                                                      |
-   | STANDARD                    | `80` | `81` | `00`  | `00` | TLV encoded data                 |      | Data format described below                                                                      |
-   | EXCHANGE                    | `84` | `c9` | `00`  | `00` | Encrypted TLV encoded data       |      | Data format described below                                                                      |
-   | CONTROL FLOW                | `80` | `3c` | STEP  | INFO | None                             |      | No data, used purely for UX                                                                      |
-   | SELECT CONFIGURATION APPLET | `00` | `a4` | `04`  | `00` | Home Key Configuration AID       | `00` |                                                                                                  |
-   | ENVELOPE                    | `00` | `c3` | `00`  | FRMT | BER-TLV with nested NDEF or CBOR | `00` | Device returns parts of BER-TLV with nested NDEF or CBOR                                         |
-   | GET RESPONSE                | `00` | `c0` | `00`  | `00` | None                             | `XX` | LE is length of data expected in response. Response data format as the one requested in ENVELOPE |
+   | Command name                | CLA  | INS  | P1    | P2   | DATA                                                 | LE   | Response Data                                        | Notes                                                                                            |
+   | --------------------------- | ---- | ---- | ----- | ---- | ---------------------------------------------------- | ---- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+   | SELECT USER APPLET          | `00` | `A4` | `04`  | `00` | Home Key AID                                         | `00` | BER-TLV encoded data                                 |                                                                                                  |
+   | FAST (AUTH0)                | `80` | `80` | FLAGS | TYPE | BER-TLV encoded data                                 | `00` | BER-TLV encoded data                                 | Data format described below                                                                      |
+   | STANDARD (AUTH1)            | `80` | `81` | `00`  | `00` | BER-TLV encoded data                                 |      | Encrypted BER-TLV encoded data                       | Data format described below                                                                      |
+   | EXCHANGE                    | `84` | `c9` | `00`  | `00` | Encrypted BER-TLV encoded data                       |      | Optional Encrypted BER-TLV encoded data              | Data format described below                                                                      |
+   | CONTROL FLOW                | `80` | `3c` | STEP  | INFO | None                                                 |      | None                                                 | No data, used purely for UX                                                                      |
+   | SELECT CONFIGURATION APPLET | `00` | `a4` | `04`  | `00` | Home Key Configuration AID                           | `00` | None                                                 |                                                                                                  |
+   | ENVELOPE                    | `00` | `c3` | `00`  | FRMT | BER-TLV with nested NDEF or CBOR with encrypted data | `00` | BER-TLV with nested NDEF or CBOR with encrypted data | Data format described below                                                                      |
+   | GET RESPONSE                | `00` | `c0` | `00`  | `00` | None                                                 | `XX` | CBOR with encrypted data                             | LE is length of data expected in response. Response data format as the one requested in ENVELOPE |
 
 
 Commands are executed in a following sequence:
@@ -222,7 +219,7 @@ Commands are executed in a following sequence:
 3. STANDARD:  
     Reader combines keys, nonces, other data exchanged during the transaction and signs it using its own private key;
     A device verifies that a signature is valid, and returns an encrypted payload containing signature of the transaction data using the device key;
-    Common keys are established during this step to be used in FAST command in next communications. **This is the step that's not yet solved**
+    Common keys are established during this step to be used in FAST command in next communications. 
 4. EXCHANGE:  
     Using the established encrypted channel, reader can request or write information from/in mailbox.  
     In cases when a reader does not recognize the device, the communication continues further with configuration.
@@ -234,12 +231,15 @@ Commands are executed in a following sequence:
 5. SELECT CONFIGURATION APPLET:  
     Reader transmits Home Key Configuration AID. Device responds positively without any data.
 6. ENVELOPE:  
-    Reader transmits BER-TLV-encoded data with nested CBOR or NDEF messages (credit [@kupa22](https://github.com/kupa22/apple-homekey) for tip);  
+    Reader transmits BER-TLV-encoded data with nested CBOR or NDEF messages.  
+    First ENVELOPE command and response pair mimics ISO18013 NFC handover with NDEF (WTF?).  
+    Following command-response pairs mimic CBOR data transfer with nested encrypted data;  **This is the part that's not yet solved**  
     Device responds with similarly encoded messages;
 * GET RESPONSE:
     If a response to `ENVELOPE` or `GET RESPONSE` had an sw `6100`, reader uses this command to request additional response parts.
   
 Alternative overview of the NFC transaction flow can be seen [here](https://github.com/kupa22/apple-homekey/#homekey-transaction-overview).
+
 ## Commands
 
 ### SELECT USER APPLET
