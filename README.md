@@ -22,10 +22,11 @@ There are three main components to the standard:
   - HAP: Used to provision reader private keys, issuer keys, configure public keys of the devices that are given access to a particular Apple Home instance;
 - NFC:
   - Authentication: runs on the SE and is inspired by the [Car Key](https://developer.apple.com/videos/play/wwdc2020/10006/) protocol, albeit with some changes, such as lack of direct pairing (which is done via HAP instead), changes to the KDF influcenced by multi-reader environment and other small ones;
-  - Attestation exchange: implemented via HCE and uses ISO18013 engagement and NFC data transfer.
+  - Attestation exchange: implemented via HCE and uses ISO18013 engagement and NFC data transfer.  
 
+<br>
 
-Just like tha parent protocols, Home Key has following advantages:
+Just like parent protocols, Home Key has following advantages:
 - This protocol provides reader authentication, data encryption, forward secrecy;
 - It [allows to share keys*](#key-sharing), although this functionality is not implemented;
 - In theory, future locks could implement UWB-based access as it's supported by specification.
