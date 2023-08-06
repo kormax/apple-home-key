@@ -17,12 +17,16 @@ Yes, it is what you think it is. Follow [@kupa22](https://github.com/kupa22/appl
 
 Apple Home Key is an NFC protocol used by select HomeKit certified locks to authenticate a user using a virtual key provisioned into their Apple device.  
 
-This protocol is largely based on a [Car Key](https://developer.apple.com/videos/play/wwdc2020/10006/) standard (look at references), although there are some changes in regards to initial provisioning/pairing to adapt to HomeKit, plus static shared info used during KDF has been changed, presumably to protect against people like the ones writing this text right now.
+There are three main components to the standard:
+- Network:
+  - HAP: Used to provision reader private keys, issuer keys, configure public keys of the devices that are given access to a particular Apple Home instance;
+- NFC:
+  - Authentication: runs on the SE and is inspired by the [Car Key](https://developer.apple.com/videos/play/wwdc2020/10006/) protocol, albeit with some changes, such as lack of direct pairing (which is done via HAP instead), changes to the KDF influcenced by multi-reader environment and other small ones;
+  - Attestation exchange: implemented via HCE and uses ISO18013 engagement and NFC data transfer.
 
 Just like tha parent protocol, Home Key has following advantages:
 - This protocol provides reader authentication, data encryption, forward secrecy;
-- It provides a "Mailbox" mechanism that allows to sync lock configuration data even in situations when a lock is not connected to the internet;
-- It allows to share keys (although this functionality is disabled due to some reason);
+- It allows* to share keys, although this functionality is not implemented;
 - In theory, future locks could implement UWB-based access as it's supported by specification.
 
 
@@ -36,113 +40,13 @@ Just like tha parent protocol, Home Key has following advantages:
 
 # HomeKit
 
-Information in this section is based on info found by [@KhaosT](https://github.com/KhaosT) for [HAP-NodeJS](https://github.com/homebridge/HAP-NodeJS);
-HomeKit data is encoded in a [TLV8](https://pypi.org/project/tlv8/) format;
 
-More comprehensive overview of this topic has been done by [@kupa22](https://github.com/kupa22/apple-homekey). This section will be left as-is for now, updated in the future.
+For HAP part of the Home Key, refer to comprehensive overview done by [@kupa22](https://github.com/kupa22/apple-homekey).
 
-## Device configuration
+<sub>Previously this section contained examples of some requests with possible meaning for each of their parts. With new knowledge, previous assumptions have been deemed to be misleading, and thus have been removed.</sub>
 
-A lock that implements a Home Key has to have an NFCAccess(`00000266-0000-1000-8000-0026BB765291`) service that has following characteristics:
-- ConfigurationState(`00000263-0000-1000-8000-0026BB765291`):  
-    Format: UINT16  
-    Operations: NOTIFY, READ  
-    Usage: Unknown
-- NFCAccessControlPoint(`00000264-0000-1000-8000-0026BB765291`):  
-    Format: TLV8  
-    Operations: READ, WRITE, WRITE_RESPONSE  
-    Usage: This characteristic is the first one being written to when a new lock is provisioned into a home. This data presumably includes:
-    - Reader private key for Home Key authentication;
-    - Public keys of devices that belong to members of a home;
-- NFCAccessSupportedConfiguration(`00000265-0000-1000-8000-0026BB765291`):  
-    Format: TLV8  
-    Operations: READ  
-    Usage: Unknown, presumably to read lock information, such as:
-    - Maximum amount of key slots;
-    - Key slot configuration/state;
-    - Extra features?
-
-## Characteristics operations
-
-This section will describe data structures being written to NFCAccessControlPoint characteristic;
-
-Prematurely, following are known:
-- HomeKey Home private key provisioning;
-- Buddy device provisioning;
-- Invitation provisioning.
-
-
-### NFCAccessControlPoint
-
-### Initial provisioning?
-Base64 form:
-```
-AQECBi8BAQICILB5zId948J7jdYynrEQIRDIJXDSaIA42zmPSDIICVhyAwgzsYDX7dNcBQ==
-```
-
-TLV form:
-```
-06[2f]:
-  01[01]: # Comand type? Version?
-   02
-  02[20]: # Private key
-   b079cc877de3c27b8dd6329eb1102110c82570d2688038db398f483208095872
-  03[08]: # Identifier
-   33b180d7edd35c05
-```
-
-This command seems to contain some sort of an identifier, version, plus private reader key used later in NFC transaction (verified, different values don't work).
-
-### Device addition?
-Base64 form:
-```
-AQECBi8BAQICILB5zId948J7jdYynrEQIRDIJXDSaIA42zmPSDIICVhyAwgzsYDX7dNcBQ==
-```
-
-TLV form:
-```
-04[52]:
-  01[01]: # Command type?
-   02
-  02[40]: # Device public key?
-   e7b0092112fcd6f0eee447287dc90a790804ed6a4aad4f64fc883b188b4b6ff2a24f6cf0cf4bd88198f497207dc7c62ff578e44ae6777fd7621a2915094acad4
-  03[08]: # Device identifier?
-   12d6efc47354c4a4
-  04[01]: # Slot identifier?
-   01
-```
-
-This command seems to contain some sort of an identifier, version, plus a public `secp256r1` key (with both points lacking a sign). I have no info on how this data is used as I haven't reached a needed step.
-
-
-### Tiny thingy?
-Base64 form:
-```
-AQEBBgA=
-```
-
-TLV form:
-```
-01[01]:
-  01
-06[00]:
-```
-
-What is this????
-
-
-**TODO Provide examples and explanation** 
 
 ## Key Color
-
-A home device may have a AccessoryInformation(`0000003E-0000-1000-8000-0026BB765291`) service, which has a RO HardwareFinish(`0000026C-0000-1000-8000-0026BB765291`) characteristic. 
-
-Hardware finish is a TLV8 with a following format:
-```
-    01[04]:    # Field 1
-      000000   # Color HEX
-      00       # Unknown (opacity?)
-```
 
 **HardwareFinish of the first lock added to your home installation influences the color of the lock art for the whole home.**
 
@@ -151,11 +55,12 @@ Following finish variations are mentioned in IOS system files:
    | Color  | Art                                                                                  | Value      | Notes                                                                                                |
    | ------ | ------------------------------------------------------------------------------------ | ---------- | ---------------------------------------------------------------------------------------------------- |
    | Black  | <img src="./assets/HOME.KEY.COLOR.BLACK.webp" alt="![Black Home Key]" width=200px>   | `00 00 00` |                                                                                                      |
-   | Gold   | <img src="./assets/HOME.KEY.COLOR.GOLD.webp" alt="![Gold Home Key]" width=200px>     | ?? ?? ??   |                                                                                                      |
-   | Silver | <img src="./assets/HOME.KEY.COLOR.SILVER.webp" alt="![Silver Home Key]" width=200px> | ?? ?? ??   | Not `FF FF FF`                                                                                                     |
-   | Tan    | <img src="./assets/HOME.KEY.COLOR.TAN.webp" alt="![Tan Home Key]" width=200px>       | ?? ?? ??   | The default color. If an unexisting color combo is chosen, this color will be selected as a fallback |
-    
-<sub>I've tried finding the colors by taking the hex values from the original pass image, but there is no direct correlation between them, so don't bother</sub>
+   | Gold   | <img src="./assets/HOME.KEY.COLOR.GOLD.webp" alt="![Gold Home Key]" width=200px>     | `AA D6 EC` |                                                                                                      |
+   | Silver | <img src="./assets/HOME.KEY.COLOR.SILVER.webp" alt="![Silver Home Key]" width=200px> | `E3 E3 E3` |                                                                                                      |
+   | Tan    | <img src="./assets/HOME.KEY.COLOR.TAN.webp" alt="![Tan Home Key]" width=200px>       | `CE D5 DA` | The default color. If an unexisting color combo is chosen, this color will be selected as a fallback |
+
+<sub>`00` also has to be appended to color value</sub>  
+<sub>Credit to [@kupa22](https://github.com/kupa22/apple-homekey) for finding rest of the key colors</sub>
 
 # NFC
 
@@ -182,15 +87,14 @@ Following characteristics can be noted:
 
 Home Key uses two application identifiers:
 1. Home Key Primary:  
-    `A0000008580101`. Primary, used for most commands;
+    `A0000008580101`. Used for authentication. Implemented on the SE;
 2. Home Key Configuration:  
-    `A0000008580102`. Presumably used for attestation exchange, can only be selected after a successful STANDARD authentication with a primary applet.
+    `A0000008580102`. Used for attestation exchange. Implemented via HCE. Can only be selected after a successful STANDARD authentication with a following EXCHANGE and CONTROL FLOW commands.
 
-In most situations a reader will only use the Primary applet, Configuration will be selected only:
-- If a new person is invited and a key data hasn't been provisioned into a lock prior to that;
-- After key revocation?;
+In most situations a reader will only use the Primary applet.  
+Configuration applet will be selected only if a new device has been invited and a key data hasn't been provisioned into a lock prior to that;
+Invitation is attested by the HAP pairing key of the person whom the device belongs to.
 
-There might be more instances when mailbox is used. This information might change as we are able to research the protocol more in-depth.
 
 ## Command overview
 
@@ -221,20 +125,22 @@ Commands are executed in a following sequence:
     A device verifies that a signature is valid, and returns an encrypted payload containing signature of the transaction data using the device key;
     Common keys are established during this step to be used in FAST command in next communications. 
 4. EXCHANGE:  
-    Using the established encrypted channel, reader can request or write information from/in mailbox.  
+    Using the established encrypted channel, reader can request a switch to a configuration applet, by providing a shared secret to be used during that operation.  
     In cases when a reader does not recognize the device, the communication continues further with configuration.
 *  CONTROL FLOW:
     Used in between other commands to communicate transaction state to the device. This command is reponsible for UX, such as:
     - Success checkmark;
     - Failure exclamation mark;
     - Error messages;
+    - Notify about a switch to configuration applet;
 5. SELECT CONFIGURATION APPLET:  
-    Reader transmits Home Key Configuration AID. Device responds positively without any data.
+    Reader transmits Home Key Configuration AID. Device responds positively without any data;
+    Re-selection is done because the device has to switch routing from the SE to HCE for attestation transfer.
 6. ENVELOPE:  
     Reader transmits BER-TLV-encoded data with nested CBOR or NDEF messages.  
-    First ENVELOPE command and response pair mimics ISO18013 NFC handover with NDEF (WTF?).  
-    Following command-response pairs mimic CBOR data transfer with nested encrypted data;  **This is the part that's not yet solved**  
-    Device responds with similarly encoded messages;
+    First ENVELOPE command and response pair mimics ISO18013 NFC handover with NDEF.  
+    Following command-response pairs mimic CBOR data transfer with nested encrypted data. Data format is the same as in ISO18013.  
+    Useful payload part contains device's `secp256r1` public key used by Home Key, attested by the public `ed25519` HAP key of device owner. 
 * GET RESPONSE:
     If a response to `ENVELOPE` or `GET RESPONSE` had an sw `6100`, reader uses this command to request additional response parts.
   
@@ -370,12 +276,12 @@ Status other than `9000` cannot be encountered
 
 SUCCESS is a flag that indicates transaction status:
 - `00` - Failure;
-- `01` - Success (Checkmark will appear).
-- `40` - Need? to exchange? attestation? data?
+- `01` - Success (Checkmark will appear);
+- `40` - Need to switch to HCE applet for attestation exchange.
 
 STEP is a second flag:
 - `00` - Failure or success in normal circumstances;
-- `a0` - Need? to exchange? attestation? data?
+- `a0` - Need to switch to HCE applet for attestation exchange.
 
 #### Response
 
@@ -468,6 +374,36 @@ Status words:
 
 Communication examples can be viewed in [resources directory](./resources/README.md).
 
+
+## Other information
+
+### Key Sharing
+
+Unlike with Car Keys, where invited keys are attested by the key of a car owner, each Home Key is attested by the HAP (AKA issuer) keys of each particular person.  
+This has following advantages:
+  - People may be removed from Apple Home as they wish, as it woudn't break the attestation chain for everyone else (only the HAP key of removed person will be removed);
+  - It allows for a lock to support many more enrolled devices, as the lock really only needs to permamentely store issuer keys, and a single one can attest multiple devices at a time (phone + watch).  
+     Although in reality the lock still stores some amount of credentials locally (current locks report up to 16), as attestation exchange takes much longer than FAST auth (0.2sec vs 1sec);   
+
+But there are also disadvantages:
+  - Home Key protocol, unlike Car Key protocol, does not support "free" sharing natively, as it assumes that each key is bound to a particular HAP key, which automatically requires someone to be present in your Apple Home.  
+  
+For people who still expect sharing to happen, not all hope is lost, as:
+  - Standard seems to have provisions for adding "Issuer keys" into a lock independently of HAP, but it is not known if it is actually implemented by the existing locks. 
+  - Key sharing may be implemented via stub/fake/invisible HomeKit users, where an issuer key of a fake user will be used to attest a key of an invited person;
+
+Only the time will tell if they are going to do any of that;
+
+### Limits
+
+During the tests, it has been found out that a single device can store up to 16 persistent keys used for FAST authentication.  
+The keys are overwriten in a FIFO/Cyclic fashion, with the oldest unused one removed the first.
+Even with this limitation, the possible amount of lock inside a single household is virtually unlimited, as your device will still fallback to a STANDARD authentication or even an attestation exchange if needed.
+
+### Configuration applet
+
+As configuration applet has to access file system to retreive the attestation package (which is up to 2kb big and stored in the file system inside the `.pkpass` files), it is assumed that configuration applet is HCE, which would also explain the requirement to re-select the applet.
+For confirmation, a test using a discharged power-reserve iPhone is needed, it is assumed that attestaion exchange shouldn't be available in this case. 
 
 # Setting up test environment
 
