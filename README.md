@@ -7,7 +7,7 @@
 </p>
 
 
-> **_NOTE:_**   
+> [!NOTE]  
 > The demo implementation is coming soon, it is being tested right now, sorry for making everyone wait, but it's almost over.  
 > To be able to try it out day 1, prepare yourself by puchasing a PN532 module and connecting it to your computer (demo will be done using python3.11 + hap-python + nfcpy, so a computer is mandatory).  
 > If connecting to a regular PC (not an RPi or etc with GPIO headers), it'll also need a UART to USB adapter connected in a following fashion.  <p float="left"> <img src="./assets/PN532.CONNECTION.DEMO.webp" alt="![Connecting PN532]" width=500px></p> 
@@ -245,7 +245,7 @@ Status other than `9000` cannot be encountered
 
 ### STANDARD
 
-> **_NOTE:_**   
+> [!NOTE]
 > Commands from this point on forward are not fully documented, [@kupa22's research](https://github.com/kupa22/apple-homekey?tab=readme-ov-file#homekey-transaction-overview) contains some missing pieces and pointers.  
 > This section and onward fill be refactored with full info after a demo is published.
 
