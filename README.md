@@ -1,15 +1,22 @@
 # Apple Home Key
 
-<sub> Last update: July 31 2023</sub>
-
 <p float="left">
  <img src="./assets/HOME.KEY.PHONE.DEMO.webp" alt="![Reading a Home Key from an iPhone with a PN532]" width=250px>
  <img src="./assets/HOME.KEY.WATCH.DEMO.webp" alt="![Reading a Home Key from a Watch with a PN532]" width=250px>
  <img src="./assets/HOME.KEY.FAST.DEMO.webp" alt="![Home Key reading logs]" width=250px>
 </p>
 
-Yes, it is what you think it is. Follow [@kupa22](https://github.com/kupa22/apple-homekey) to be one of the first ones to find out how in the coming weeks.
-<br>
+
+> **_NOTE:_**   
+> The demo implementation is coming soon, it is being tested right now, sorry for making everyone wait, but it's almost over.  
+> To be able to try it out day 1, prepare yourself by puchasing a PN532 module and connecting it to your computer (demo will be done using python3.11 + hap-python + nfcpy, so a computer is mandatory).  
+> If connecting to a regular PC (not an RPi or etc with GPIO headers), it'll also need a UART to USB adapter connected in a following fashion.  <p float="left"> <img src="./assets/PN532.CONNECTION.DEMO.webp" alt="![Connecting PN532]" width=500px></p> 
+> * To verify that you've successfuly set up and connected everything, try any of the [examples provided by nfcpy library](https://github.com/nfcpy/nfcpy/tree/master/examples). If any example works, demo code will work too.
+> * To verify that your network setup is correct, [run any of the hap-python examples](https://github.com/ikalchev/HAP-python/tree/dev/accessories), if you're able to connect a sample accessory, everything is good. Otherwise, check your network configuration, verify that no firewall (i.e. Little Snitch) or other app is blocking the connection.
+> 
+> If any questions arise when verifying that your set up works, feel free to raise an issue, it'll be useful for troubleshooting and helping others in the future.
+>
+> Also, while you're still waiting, please show support to [@kupa22](https://github.com/kupa22/apple-homekey) who found out lots of important info about the protocol, helping to make this possible.
 
 
 # Overview
@@ -238,6 +245,10 @@ Status other than `9000` cannot be encountered
 
 ### STANDARD
 
+> **_NOTE:_**   
+> Commands from this point on forward are not fully documented, [@kupa22's research](https://github.com/kupa22/apple-homekey?tab=readme-ov-file#homekey-transaction-overview) contains some missing pieces and pointers.  
+> This section and onward fill be refactored with full info after a demo is published.
+
 #### Request
 
 ##### Overview
@@ -404,8 +415,8 @@ Even with this limitation, the possible amount of lock inside a single household
 
 ### Configuration applet
 
-As configuration applet has to access file system to retreive the attestation package (which is up to 2kb big and stored in the file system inside the `.pkpass` files), it is assumed that configuration applet is HCE, which would also explain the requirement to re-select the applet.
-For confirmation, a test using a discharged power-reserve iPhone is needed, it is assumed that attestaion exchange shouldn't be available in this case. 
+As configuration applet has to access file system to retreive the attestation package (which is up to 2kb big and stored in the file system inside the `.pkpass` files), it is thought that configuration applet is HCE, which would also explain the requirement to re-select the applet.
+Configuration applet has also been tested to not work during power reserve mode, which proves that it's indeed HCE, as it doesn't operate without a powered-on operating system.
 
 # Setting up test environment
 
