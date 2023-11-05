@@ -9,7 +9,9 @@
 
 > [!NOTE]  
 > The demo implementation is coming soon, it is being tested right now, sorry for making everyone wait, but it's almost over.  
+>
 > To be able to try it out day 1, prepare yourself by puchasing a PN532 module and connecting it to your computer (demo will be done using python3.11 + hap-python + nfcpy, so a computer is mandatory).  
+>
 > If connecting to a regular PC (not an RPi or etc with GPIO headers), it'll also need a UART to USB adapter connected in a following fashion (actual photo under the "Note" block).  
 > * To verify that you've successfuly set up and connected everything, try any of the [examples provided by nfcpy library](https://github.com/nfcpy/nfcpy/tree/master/examples). If any example works, demo code will work too.
 > * To verify that your network setup is correct, [run any of the hap-python examples](https://github.com/ikalchev/HAP-python/tree/dev/accessories), if you're able to connect a sample accessory, everything is good. Otherwise, check your network configuration, verify that no firewall (i.e. Little Snitch) or other app is blocking the connection.
