@@ -8,8 +8,7 @@
 
 
 > [!NOTE]  
-> [THE FLOODGATES ARE ALMOST OPEN 26.11.2023](https://github.com/kormax/apple-home-key-reader)
->
+> [For fully functionall Apple Home Key Reader Implementation, visit this link](https://github.com/kormax/apple-home-key-reader)
 
 # Overview
 
