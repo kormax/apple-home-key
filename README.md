@@ -34,8 +34,10 @@ Just like parent protocols, Home Key has following advantages:
 
 - Nonce - Single-use number;
 - EC - Elliptic Curve;
+- Endpoint - end device;
+- Issuer - a party that's generating keys;
 - If a key is mentioned without algorithm info, assume its `secp256r1`;
-- If a question mark is used near a word before the ending of a sentence, it means that it is an assumption.
+- Copernicus - codename of the Home Key applet implementation.
 
 
 # HomeKit
@@ -238,7 +240,7 @@ Status other than `9000` cannot be encountered
 
 > [!NOTE]
 > Commands from this point on forward are not fully documented, [@kupa22's research](https://github.com/kupa22/apple-homekey?tab=readme-ov-file#homekey-transaction-overview) contains some missing pieces and pointers.  
-> This section and onward fill be refactored with full info after a demo is published.
+> This section will soon be completed, please bear with us.
 
 #### Request
 
@@ -385,12 +387,12 @@ Communication examples can be viewed in [resources directory](./resources/README
 
 Unlike with Car Keys, where invited keys are attested by the key of a car owner, each Home Key is attested by the HAP (AKA issuer) keys of each particular person.  
 This has following advantages:
-  - People may be removed from Apple Home as they wish, as it woudn't break the attestation chain for everyone else (only the HAP key of removed person will be removed);
-  - It allows for a lock to support many more enrolled devices, as the lock really only needs to permamentely store issuer keys, and a single one can attest multiple devices at a time (phone + watch).  
+  - People may be removed from Apple Home at will, as it woudn't break the attestation chain for everyone else (only the HAP-issuer key of removed person will be removed);
+  - It allows for a lock to support much more enrolled devices, as the lock really only needs to permamentely store issuer keys, and a single one can attest multiple devices at a time (phone + watch).  
      Although in reality the lock still stores some amount of credentials locally (current locks report up to 16), as attestation exchange takes much longer than FAST auth (0.2sec vs 1sec);   
 
 But there are also disadvantages:
-  - Home Key protocol, unlike Car Key protocol, does not support "free" sharing natively, as it assumes that each key is bound to a particular HAP key, which automatically requires someone to be present in your Apple Home.  
+  - Home Key protocol, unlike Car Key protocol, does not support "free-for-all" sharing natively, as it assumes that each key is bound to a particular HAP key, which automatically requires someone to be present in your Apple Home.  
   
 For people who still expect sharing to happen, not all hope is lost, as:
   - Standard seems to have provisions for adding "Issuer keys" into a lock independently of HAP, but it is not known if it is actually implemented by the existing locks. 
@@ -406,25 +408,124 @@ Even with this limitation, the possible amount of lock inside a single household
 
 ### Configuration applet
 
-As configuration applet has to access file system to retreive the attestation package (which is up to 2kb big and stored in the file system inside the `.pkpass` files), it is thought that configuration applet is HCE, which would also explain the requirement to re-select the applet.
-Configuration applet has also been tested to not work during power reserve mode, which proves that it's indeed HCE, as it doesn't operate without a powered-on operating system.
+Configuration applet, utilized for attestation package retrieval, is belived to be implemented via HCE. The reasons for that are the following:
+1. It doesn't work in power reserve mode, with NFC communication hanging on reselection;
+2. The same attestation package transferred during communication can be found in the .pkpass file of the key inside of the normal file system;  
 
-# Setting up test environment
+That would explain the need for additional applet reselection, as this is one of the ways of returning control to the OS in order to give it an ability to read the package file and send it via NFC.   
+Also, storing a static 0.6-1kb package inside of the highly limited (1mb?) SE memory would've been wasteful.
 
-You can start playing with Home Keys even without having a real lock. To do that:
-1. First, you have to download [HAP-NodeJS](https://github.com/homebridge/HAP-NodeJS) onto your system;
-2. Copy the example code [provided by @KhaosT here](https://github.com/KhaosT/HAP-NodeJS/commit/80cdb1535f5bee874cc06657ef283ee91f258815) into a new file inside the HAP directory, call it "lock.js";
-3. Run the code using `node lock.js` command. Wait for initialization to complete;
-4. Open the Home app on your device that resides in the same network, click "+" to add an accessory. Wait for Lock to appear (should do this really fast, otherwise verify connectivity); 
-5. Add the lock, take the pairing code from the bottom of example code. During the provisioning proccess, agree to set up the home key;
-6. After the initialization is complete, your Home Key should appear inside of the Wallet app.
-* When adding multiple locks, don't forget to change MAC, ID, Pairing info of the new instances, as similar info might confuse HomeKit.
+It raises a question if the so simillar Digital Car Key dual-applet system works the same way.
+
+
+### Copernicus
+
+> Nicolaus Copernicus was a Renaissance polymath, active as a mathematician, astronomer, and Catholic canon.  - Wikipedia.
+
+Besides, Copernicus is the codename of the applet used by Apple Home Keys.  
+
+Apple OS internals contain not one, but three codenames that start with such a name:
+- `CopernicusCar`;
+- `CopernicusHome`;
+- `CopernicusAccess`.
+
+Taking a deeper look, we find out that all of those applets share the same primary internal AID `A000000704D011500000000002000000` and container AID `A000000704D011500000000001000000`, which also **means that they share the same implementation**. 
+
+This explains why there's so much overlap between the Car Key protocol (as described in an overview video), and a Home Key protocol. Because it's the same code base, just with some features/quirks for each subtype turned on and off for particular instances.   
+
+It also tells us that there's a third, publically unknown "Access" implementation.  
+Not one **based not on Seos (offices) or Mifare (hotels, offices, theme parks)**, but on the same "Key" standard.  
+This "Access" applet could be the one used in solutions provided to Hotels and managed Properties, the ones which have built-in sharing functionality. The only one real-life implementation of this protocol variation was presumably done by [Salto](https://support.saltosystems.com/homelok/user-guide/keyholder/faqs/apple-wallet-keys/), as they are the only ones who offer native in-wallet key sharing.
+
+It also explains why the attestation exchange part of the Home Key protocol seemed too complex for the task it was aiming to achieve, especially the storage of validity dates, floor and room access flags, etc.  
+In the context of shared/managed properties all of that info could be used for "offline synchronization", as an endpoint would be able to prove access to a particular zone of the property without a need for a reader to ring a backend and continuously synchronize a list of allowed users. 
+
+
+### Unified Access
+
+UnifiedAccess is the Passkit framework codename for Copernicus-based access passes.
+
+
+### Purple Trust
+
+Both the Home and Access Keys have system references which start with `purpleTrustAir`.  
+Considering that Car Keys have no such references, my guess is that it could be related to networked pairing or Bluetooth subsystems (air), which are unused in the former case.
+
+
+### PTA
+
+Car, Home, Access applets have references to them that start or end with `pta`.   
+
+Coincidentally, Apple Cash Card is named `ptc`, which could mean that `pt` is a prefix for internally-developed applets, with `c` standing for `Cash` and `a` standing for `Access`.
+
+
+### Role of ISO18013
+
+Passkit framework defines following ISO18013 credential storage partitions:
+- Identity
+- UnifiedAccess
+
+It proves that usage of ISO18013 by UnifiedAccess was not a "one-time quick hack" but more like "temporary solutions are permament".
+
+Considering that ISO18013 for a Home Key can be found on a file system, it raises a question if it's the same for Identity, or if the different `Partition` part actually means that Identity document in stored somewhere else?
+
+
+> [!NOTE]  
+>  SEP (Secure Enclave Processor) and SE (Secure Element) are two different things. SE is a separate certified chip, usually packaged together with an NFC controller, which runs primitive but hardened JCOP OS implementation. SEP (TrustZone) is a part of the CPU, running a separate manufacturer-provided OS. While SEP boasts greater power compared to SE, it also presents a higher vulnerability risk. 
+
+
+Indeed, Apple doesn't claim that ISO18013 Identity runs on the secure element. Instead, [they say](https://support.apple.com/en-gb/guide/security/secc50cff810/web):
+> By storing the private key for ID authentication in the iPhone device’s Secure Element, the ID is bound to the same device that the state-issuing authority created the ID for"
+
+> The information reflected on the user’s ID in Apple Wallet is stored in an encrypted format protected by the Secure Enclave.
+ 
+
+Which means that base ISO18013 identity data is not stored in the secure element, but is instead stored in the file system either in an SEP-key-backed encrypted form, or a plain form, with SE only being used for crypto proof generation.  
+So Apple's ISO18013 implementation runs exclusively via HCE, with SE serving only for key storage, so quite similar to newer Android devices with StrongBox? Eh :))?. 
+
+
+### Aliro
+
+Considering that the CCC Digital Car Key implementation is based primarily on work done by Apple, it's quite probable that the upcoming [Aliro](https://csa-iot.org/all-solutions/aliro/) standard will also borrow big chunks of current Apple Car/Home/Access key implementation.
+
+The feature that could undego the most changes will be the "attestation exchange" part.  
+Aliro is planned as "Multi-Architecture" and "Multi-purpose", so it will contain the same features needed by shared and private properties, such as:
+- Sharing and offline-enabled invitations (Attestations):
+  - Simplified non-ISO18013 based flow;
+  - Access zone masks;
+  - Date and validity periods;
+  - Limitations on buddy/multiple devices, ability to share.
+- Configuration synchronization: (Mailboxes):
+  - Revocations;
+  - Setting updates.
+- Multiple radio standard support:
+  - Bluetooth;
+  - UWB.
+ 
+
+### Applet size
+
+All Copernicus-based Car/Home/Access applets share the same implementation with same memory usage regardless of instance type.  
+According to Passkit framework (thanks to SE memory management screen), the usage is as follows (numbers in bytes):
+
+| Type         | CLEAR_ON_DESELECT (cod) | CLEAR_ON_RESET (cor) | PERSISTANT_HEAP (pHeap) |
+| ------------ | ----------------------- | -------------------- | ----------------------- |
+| Selectable   | 124                     | 19                   | 7348                    |
+| Package      | 0                       | 0                    | 54356                   |
+| Personalized | 124                     | 0                    | 5900                    |
+| Container    | 4203                    | 332                  | 1496                    |
+
+Copernicus executable code (Package) takes 54356 bytes (54 KB), with each instance (Personalized) taking an additional 5900 bytes each.
+
+Modern IOS devices have about 0.7MB of memory available for users, which means that a user will be able to add about `(700000 - 54356) / 5900 = 109` keys until the memory runs out.  
+In reality, due to nature of JCOP GC and other things (such as additional provisioning for Selectable and Container memory, which I'm not entirely sure about, tell me if you know), the real number could differ.  
+Also, considering that a real user will install other applets, this amount could drop significantly, but regardless of that no normal person will ever reach the limit.
 
 
 # Notes
 
-- If you find any mistakes/typos or have extra information to add, feel free to raise an issue or create a PR.
-
+- If you find any mistakes/typos or have extra information to add, feel free to raise an issue or create a PR;
+- Please be aware that the information presented here is based on personal findings, observations and assumptions, so there's no guarantee that it's correct in its entirety.
 
 # References
 
@@ -454,6 +555,9 @@ You can start playing with Home Keys even without having a real lock. To do that
     - [Schlage encode plus](https://www.schlage.com/en/home/smart-locks/encode-plus.html);
     - [Level Lock +](https://level.co/shop/level-lock-plus);
     - [TUO Smart Lock](https://findtuo.com/pages/smart-lock).
+  - Other:
+    - [Aliro](https://csa-iot.org/all-solutions/aliro/);
+    - [Salto Homelok - Apple Wallet Keys](https://support.saltosystems.com/homelok/user-guide/keyholder/faqs/apple-wallet-keys/);
 * Devices and software used for analysis:
   - [HAP-NodeJS](https://github.com/homebridge/HAP-NodeJS) - used to create virtual lock instances in order to look at communication and data structures;
   - Proxmark3 Easy - used to sniff Home Key transactions. Proxmark3 RDV2/4 can also be used;
