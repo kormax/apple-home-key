@@ -185,7 +185,7 @@ Currently only versions `0100`  and `0200` aka 1.0 and 2.0 are known
   02000100   # Supports version 2.0, and version 1.0
 ```
 
-## FAST
+## FAST (AUTH0)
 
 ### Request
 
@@ -281,6 +281,8 @@ krmac = hkdf[key_size * 3 :]
 calculated_cryptogram = kcmac
 ```
 
+
+## STANDARD (AUTH1)
 
 ### Request
 
